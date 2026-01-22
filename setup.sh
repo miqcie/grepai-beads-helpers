@@ -87,7 +87,7 @@ ask_yes_no() {
   fi
 
   while true; do
-    read -p "$1 (y/n): " yn
+    read -r -p "$1 (y/n): " yn
     case $yn in
       [Yy]* ) return 0;;
       [Nn]* ) return 1;;
@@ -241,9 +241,11 @@ configure_go_path() {
   fi
 
   # Add to shell config
-  echo "" >> "$SHELL_CONFIG"
-  echo "# Go binaries (added by grepai-beads-helpers setup)" >> "$SHELL_CONFIG"
-  echo 'export PATH="$HOME/go/bin:$PATH"' >> "$SHELL_CONFIG"
+  {
+    echo ""
+    echo "# Go binaries (added by grepai-beads-helpers setup)"
+    echo 'export PATH="$HOME/go/bin:$PATH"'
+  } >> "$SHELL_CONFIG"
 
   # Add to current session
   export PATH="$HOME/go/bin:$PATH"
@@ -266,9 +268,7 @@ install_grepai() {
   if command -v grepai &> /dev/null || [ -f "$HOME/go/bin/grepai" ]; then
     print_success "grepai is already installed"
     if [ -f "$HOME/go/bin/grepai" ]; then
-      GREPAI_PATH="$HOME/go/bin/grepai"
-      GREPAI_VERSION=$($GREPAI_PATH --help 2>&1 | head -1 || echo "unknown version")
-      print_info "Location: $GREPAI_PATH"
+      print_info "Location: $HOME/go/bin/grepai"
     fi
     echo ""
     return 0
@@ -561,7 +561,11 @@ verify_installations() {
     print_info "beads not initialized yet (run: cd ~ && bd init)"
   fi
 
-  return $([ "$all_good" = true ] && echo 0 || echo 1)
+  if [ "$all_good" = true ]; then
+    return 0
+  else
+    return 1
+  fi
 }
 
 # Print summary
@@ -614,7 +618,8 @@ print_summary() {
 
 # Main execution
 main() {
-  clear
+  # Clear screen if available (may not be in CI)
+  clear 2>/dev/null || true
 
   echo ""
   print_header "🚀 grepai + beads Setup for Claude Code"
