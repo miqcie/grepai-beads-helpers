@@ -1,0 +1,91 @@
+name: Test Setup Script
+
+on:
+  push:
+    branches: [ main, feature/* ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-macos:
+    name: Test on macOS
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install shellcheck
+        run: brew install shellcheck
+
+      - name: Run test suite
+        run: ./tests/test-functions.sh
+
+      - name: Test setup script (dry run)
+        run: ./setup.sh --non-interactive --skip-go --skip-grepai --skip-beads --skip-claude-md
+
+  test-ubuntu:
+    name: Test on Ubuntu
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+
+      - name: Run test suite
+        run: ./tests/test-functions.sh
+
+      - name: Test setup script (dry run)
+        run: ./setup.sh --non-interactive --skip-go --skip-grepai --skip-beads --skip-claude-md
+
+  test-ubuntu-full-install:
+    name: Full Installation Test (Ubuntu)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run full setup
+        run: ./setup.sh --non-interactive
+
+      - name: Verify Go installation
+        run: go version
+
+      - name: Verify grepai installation
+        run: |
+          ls -la ~/go/bin/grepai
+          ~/go/bin/grepai --help
+
+      - name: Verify beads installation
+        run: |
+          ls -la ~/go/bin/bd
+          ~/go/bin/bd --help
+
+      - name: Verify CLAUDE.md created
+        run: cat ~/.claude/CLAUDE.md
+
+      - name: Test grepai init
+        run: |
+          cd ${{ github.workspace }}
+          ~/go/bin/grepai init --yes --provider ollama --backend gob || true
+          ls -la .grepai/
+
+  lint:
+    name: Shellcheck Linting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+
+      - name: Lint setup.sh
+        run: shellcheck -x setup.sh
+
+      - name: Lint index-all-projects.sh
+        run: shellcheck -x index-all-projects.sh
+
+      - name: Lint test script
+        run: shellcheck -x tests/test-functions.sh
