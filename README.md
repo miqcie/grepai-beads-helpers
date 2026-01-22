@@ -4,7 +4,7 @@ Automation scripts for [grepai](https://github.com/yoanbernabeu/grepai) (semanti
 
 ## What This Solves
 
-**The Problem:** Setting up grepai across 20+ projects or initializing beads manually is tedious and easy to forget (especially with ADHD).
+**The Problem:** Setting up grepai across 20+ projects or initializing beads manually is tedious, time-consuming, and easy to forget.
 
 **The Solution:** One-command automation that handles bulk operations for you.
 
@@ -66,7 +66,7 @@ go install github.com/yoanbernabeu/grepai/cmd/grepai@latest
 
 ```bash
 # Clone this repo
-git clone https://github.com/chrismcconnell/grepai-beads-helpers.git
+git clone https://github.com/miqcie/grepai-beads-helpers.git
 cd grepai-beads-helpers
 
 # Make scripts executable
@@ -78,9 +78,7 @@ chmod +x *.sh
 
 ## Why Automate?
 
-From the [ADHD-Friendly Automation Philosophy](https://github.com/chrismcconnell/grepai-beads-helpers):
-
-> **If a human has to remember to do something more than once, automate it.**
+> **If you have to remember to do something more than once, automate it.**
 
 Manual setup across multiple projects is:
 - ❌ Boring and tedious
@@ -151,7 +149,7 @@ MIT License - see [LICENSE](LICENSE)
 
 - [grepai](https://github.com/yoanbernabeu/grepai) by Yoan Bernabeu
 - [beads](https://github.com/steveyegge/beads) by Steve Yegge
-- Scripts by [Chris McConnell](https://github.com/chrismcconnell)
+- Community contributions welcome!
 
 ## Related Projects
 
