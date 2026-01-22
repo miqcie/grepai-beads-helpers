@@ -10,10 +10,130 @@ Automation scripts for [grepai](https://github.com/yoanbernabeu/grepai) (semanti
 
 ## Tools Covered
 
-- **[grepai](https://github.com/yoanbernabeu/grepai)** - Semantic code search using vector embeddings. Search by what code *does*, not just what it's called. ✅ Scripts available now
-- **[beads](https://github.com/steveyegge/beads)** - Git-backed persistent memory for AI agents. Track tasks, dependencies, and context across sessions. 🚧 Scripts coming soon
+- **[grepai](https://github.com/yoanbernabeu/grepai)** - Semantic code search using vector embeddings. Search by what code *does*, not just what it's called. ✅ Available now
+- **[beads](https://github.com/steveyegge/beads)** - Git-backed persistent memory for AI agents. Track tasks, dependencies, and context across sessions. ✅ Available now
+
+## Quick Start
+
+**New to grepai and beads?** Start here:
+
+```bash
+# Clone this repo
+git clone https://github.com/miqcie/grepai-beads-helpers.git
+cd grepai-beads-helpers
+
+# Run the setup script (installs everything)
+./setup.sh
+```
+
+The setup script will:
+1. ✅ Check/install Go (required for grepai and beads)
+2. ✅ Install grepai (semantic code search)
+3. ✅ Install beads (AI agent memory)
+4. ✅ Configure your shell PATH
+5. ✅ Create CLAUDE.md with auto-usage rules (optional)
+6. ✅ Check for Ollama (embeddings provider)
+
+After setup, reload your shell:
+```bash
+source ~/.zshrc  # or ~/.bashrc
+```
+
+Then index your first project:
+```bash
+cd ~/your-project
+grepai init --provider ollama --backend gob
+```
+
+---
 
 ## Scripts
+
+### 🚀 `setup.sh` - One-Command Installation
+
+**The easiest way to get started.** Installs grepai, beads, and configures Claude Code automatically.
+
+**What it does:**
+- Detects your OS (macOS/Linux) and shell (bash/zsh)
+- Checks if Go is installed (installs if missing on macOS)
+- Installs grepai and beads from source
+- Configures `~/go/bin` in your PATH
+- Initializes beads memory at `~/.beads/`
+- Creates `~/.claude/CLAUDE.md` with auto-usage rules (optional)
+- Verifies Ollama installation for embeddings
+
+**Usage:**
+```bash
+./setup.sh
+```
+
+**Interactive mode** (default): Asks before making changes
+**Non-interactive mode**: Uses defaults, no prompts
+```bash
+./setup.sh --non-interactive
+```
+
+**Skip specific steps:**
+```bash
+./setup.sh --skip-grepai           # Skip grepai installation
+./setup.sh --skip-beads            # Skip beads installation
+./setup.sh --skip-claude-md        # Skip CLAUDE.md configuration
+./setup.sh --skip-go               # Skip Go installation check
+```
+
+**Example output:**
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 Detecting Environment
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ℹ OS: macOS
+ℹ Package Manager: brew
+ℹ Shell: zsh
+ℹ Shell config: /Users/you/.zshrc
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📦 Checking Go Installation
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✓ Go is installed: go1.21.5
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔍 Installing grepai
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✓ grepai installed successfully
+ℹ Location: /Users/you/go/bin/grepai
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔮 Installing beads
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✓ beads installed successfully
+ℹ Location: /Users/you/go/bin/bd
+✓ beads initialized
+ℹ Memory stored in: ~/.beads/
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ Setup Complete
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Next steps:
+
+1. Reload your shell:
+   source /Users/you/.zshrc
+
+2. Index your projects with grepai:
+   cd ~/GitHub/your-project
+   grepai init --provider ollama --backend gob
+
+3. Start using beads for memory:
+   bd create "My first memory"
+   bd search "project"
+```
+
+**Requirements:**
+- macOS or Linux
+- Internet connection (for downloading packages)
+- Sudo access (only if installing Go via apt/yum)
+
+---
 
 ### 🔍 `index-all-projects.sh`
 
@@ -52,21 +172,25 @@ Bulk-initialize grepai for all projects in `~/GitHub/` and `~/projects/`.
 
 **Prerequisites:**
 
-For grepai scripts (available now):
-- [Go](https://go.dev/doc/install) 1.21+ (required for grepai installation)
-- [grepai](https://github.com/yoanbernabeu/grepai) installed
+> **💡 Tip:** Run `./setup.sh` to install everything automatically. The manual steps below are only needed if you prefer manual installation or want to customize your setup.
+
+- [Go](https://go.dev/doc/install) 1.21+ (setup.sh can install this on macOS)
+- [grepai](https://github.com/yoanbernabeu/grepai) (setup.sh installs this)
+- [beads](https://github.com/steveyegge/beads) (setup.sh installs this)
 - **Embeddings provider** (choose one):
-  - [Ollama](https://ollama.com/) with cloud or local models
+  - [Ollama](https://ollama.com/) with cloud or local models (recommended)
   - [OpenAI](https://openai.com/) with API key
   - Any [Ollama-compatible provider](https://github.com/ollama/ollama?tab=readme-ov-file#community-integrations)
 
-For beads scripts (coming soon):
-- [beads](https://github.com/steveyegge/beads) installed
-- Git initialized in home directory (for memory persistence)
+**Manual Installation (Optional):**
+
+Only follow these steps if you're NOT using `setup.sh`:
 
 ```bash
 # Install Go (if not already installed)
-brew install go
+brew install go  # macOS
+# OR: sudo apt-get install golang-go  # Ubuntu/Debian
+# OR: sudo yum install golang  # CentOS/RHEL
 
 # Ensure ~/go/bin is in your PATH
 echo 'export PATH="$HOME/go/bin:$PATH"' >> ~/.zshrc
@@ -74,6 +198,10 @@ source ~/.zshrc
 
 # Install grepai
 go install github.com/yoanbernabeu/grepai/cmd/grepai@latest
+
+# Install beads
+go install github.com/steveyegge/beads/cmd/bd@latest
+cd ~ && bd init
 
 # Install embeddings provider (pick one):
 
@@ -85,13 +213,33 @@ ollama pull nomic-embed-text  # For local embeddings
 
 ## Option B: OpenAI
 # Just set OPENAI_API_KEY environment variable
-
-# Install beads (optional, for future scripts)
-go install github.com/steveyegge/beads/cmd/bd@latest
-cd ~ && bd init
+export OPENAI_API_KEY="sk-..."
 ```
 
+---
+
 ## Installation
+
+**Recommended: Use the automated setup script**
+
+```bash
+# Clone this repo
+git clone https://github.com/miqcie/grepai-beads-helpers.git
+cd grepai-beads-helpers
+
+# Run setup (installs grepai + beads + configures everything)
+./setup.sh
+
+# Reload your shell
+source ~/.zshrc  # or ~/.bashrc
+
+# Bulk index all your projects
+./index-all-projects.sh
+```
+
+**Alternative: Manual installation**
+
+If you prefer to install tools manually or already have them installed:
 
 ```bash
 # Clone this repo
@@ -101,9 +249,11 @@ cd grepai-beads-helpers
 # Make scripts executable
 chmod +x *.sh
 
-# Run what you need
+# Use individual scripts
 ./index-all-projects.sh
 ```
+
+---
 
 ## Why Automate?
 
@@ -191,10 +341,11 @@ See also:
 
 ## Roadmap
 
-- [ ] `setup-beads.sh` - Automated beads initialization with git integration
-- [ ] `migrate-progress-to-beads.sh` - Convert PROGRESS.md files to beads memories
+- [x] `setup.sh` - One-command installation for grepai + beads + CLAUDE.md configuration ✅ **Available now**
+- [ ] `migrate-progress-to-beads.sh` - Convert existing PROGRESS.md files to beads memories
 - [ ] `watch-all-projects.sh` - Start grepai watch daemons for all indexed projects
-- [ ] Auto-detection of which projects need indexing (based on recent changes)
+- [ ] `sync-beads.sh` - Push/pull beads memory to remote git repository
+- [ ] Auto-detection of which projects need indexing (based on recent git changes)
 
 ## Contributing
 
