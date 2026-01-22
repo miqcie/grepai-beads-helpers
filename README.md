@@ -20,10 +20,12 @@ Automation scripts for [grepai](https://github.com/yoanbernabeu/grepai) (semanti
 Bulk-initialize grepai for all projects in `~/GitHub/` and `~/projects/`.
 
 **What it does:**
-- Finds all project directories
-- Initializes grepai with Ollama embeddings + GOB storage
+- Finds all project directories in `~/GitHub/` and `~/projects/`
+- Initializes grepai with your chosen embeddings provider (defaults to Ollama + GOB storage)
 - Skips already-indexed projects
 - Shows summary of what was indexed
+
+**Configuration:** Edit the script to match your embeddings provider (see Customization section below)
 
 **Usage:**
 ```bash
@@ -53,7 +55,10 @@ Bulk-initialize grepai for all projects in `~/GitHub/` and `~/projects/`.
 For grepai scripts (available now):
 - [Go](https://go.dev/doc/install) 1.21+ (required for grepai installation)
 - [grepai](https://github.com/yoanbernabeu/grepai) installed
-- [Ollama](https://ollama.com/) running with `nomic-embed-text` model
+- **Embeddings provider** (choose one):
+  - [Ollama](https://ollama.com/) with cloud or local models
+  - [OpenAI](https://openai.com/) with API key
+  - Any [Ollama-compatible provider](https://github.com/ollama/ollama?tab=readme-ov-file#community-integrations)
 
 For beads scripts (coming soon):
 - [beads](https://github.com/steveyegge/beads) installed
@@ -70,10 +75,16 @@ source ~/.zshrc
 # Install grepai
 go install github.com/yoanbernabeu/grepai/cmd/grepai@latest
 
-# Install and setup Ollama
+# Install embeddings provider (pick one):
+
+## Option A: Ollama (recommended if using Claude Code)
 brew install ollama
 brew services start ollama
-ollama pull nomic-embed-text
+# Use your existing Ollama models, or:
+ollama pull nomic-embed-text  # For local embeddings
+
+## Option B: OpenAI
+# Just set OPENAI_API_KEY environment variable
 
 # Install beads (optional, for future scripts)
 go install github.com/steveyegge/beads/cmd/bd@latest
@@ -126,11 +137,24 @@ if [ -d ~/code ]; then
 fi
 ```
 
-### Different Embeddings Provider
+### Different Embeddings Providers
 
-Change from Ollama (local, free) to OpenAI (cloud, paid):
+**Choose based on your existing setup:**
 
-**Note:** OpenAI requires an API key and charges per embedding. Set `OPENAI_API_KEY` environment variable first.
+#### Use What You Already Have
+
+If you're using Claude Code with Ollama cloud models (e.g., GLM 4.7), use those same models for grepai:
+
+```bash
+# In the script, change:
+"$GREPAI" init --yes --provider ollama --backend gob
+```
+
+Then configure grepai to use your Ollama cloud model. See [Ollama's Claude Code integration docs](https://docs.ollama.com/integrations/claude-code) for model recommendations.
+
+#### OpenAI (Cloud)
+
+If you already have OpenAI API credits:
 
 ```bash
 # Set your OpenAI API key
@@ -140,16 +164,30 @@ export OPENAI_API_KEY="sk-..."
 "$GREPAI" init --yes --provider openai --backend gob
 ```
 
-**Why Ollama (default)?**
-- ✅ Free and runs locally
-- ✅ No API keys needed
-- ✅ Privacy-first (code never leaves your machine)
-- ✅ Fast embeddings with nomic-embed-text model
+**Note:** Charges per embedding. See [OpenAI pricing](https://openai.com/api/pricing/).
 
-**When to use OpenAI:**
-- Better semantic understanding for complex queries
-- Don't want to run local models
-- Already have OpenAI API credits
+#### Local Models (Ollama)
+
+For completely local, private embeddings:
+
+```bash
+# Default in script - uses nomic-embed-text locally
+"$GREPAI" init --yes --provider ollama --backend gob
+```
+
+### Embedding Provider Comparison
+
+| Provider | Privacy | Cost | Setup | Best For |
+|----------|---------|------|-------|----------|
+| **Ollama Cloud** | Cloud | Varies | Existing Claude Code users | Consistent with current workflow |
+| **Ollama Local** | Local | Free | Requires local model | Complete privacy, no API keys |
+| **OpenAI** | Cloud | Pay-per-use | API key required | Already using OpenAI services |
+
+**Recommendation:** Use whatever you're already using for Claude Code or other AI tools. Consistency simplifies your setup.
+
+See also:
+- [Ollama Community Integrations](https://github.com/ollama/ollama?tab=readme-ov-file#community-integrations)
+- [Ollama Official Integrations](https://ollama.com/)
 
 ## Roadmap
 
