@@ -10,8 +10,8 @@ Automation scripts for [grepai](https://github.com/yoanbernabeu/grepai) (semanti
 
 ## Tools Covered
 
-- **[grepai](https://github.com/yoanbernabeu/grepai)** - Semantic code search using vector embeddings. Search by what code *does*, not just what it's called.
-- **[beads](https://github.com/steveyegge/beads)** - Git-backed persistent memory for AI agents. Track tasks, dependencies, and context across sessions.
+- **[grepai](https://github.com/yoanbernabeu/grepai)** - Semantic code search using vector embeddings. Search by what code *does*, not just what it's called. ✅ Scripts available now
+- **[beads](https://github.com/steveyegge/beads)** - Git-backed persistent memory for AI agents. Track tasks, dependencies, and context across sessions. 🚧 Scripts coming soon
 
 ## Scripts
 
@@ -49,17 +49,35 @@ Bulk-initialize grepai for all projects in `~/GitHub/` and `~/projects/`.
 ```
 
 **Prerequisites:**
+
+For grepai scripts (available now):
+- [Go](https://go.dev/doc/install) 1.21+ (required for grepai installation)
 - [grepai](https://github.com/yoanbernabeu/grepai) installed
 - [Ollama](https://ollama.com/) running with `nomic-embed-text` model
 
+For beads scripts (coming soon):
+- [beads](https://github.com/steveyegge/beads) installed
+- Git initialized in home directory (for memory persistence)
+
 ```bash
-# Install prerequisites
-brew install ollama
-ollama pull nomic-embed-text
-ollama serve
+# Install Go (if not already installed)
+brew install go
+
+# Ensure ~/go/bin is in your PATH
+echo 'export PATH="$HOME/go/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
 
 # Install grepai
 go install github.com/yoanbernabeu/grepai/cmd/grepai@latest
+
+# Install and setup Ollama
+brew install ollama
+brew services start ollama
+ollama pull nomic-embed-text
+
+# Install beads (optional, for future scripts)
+go install github.com/steveyegge/beads/cmd/bd@latest
+cd ~ && bd init
 ```
 
 ## Installation
@@ -110,12 +128,28 @@ fi
 
 ### Different Embeddings Provider
 
-Change from Ollama to OpenAI:
+Change from Ollama (local, free) to OpenAI (cloud, paid):
+
+**Note:** OpenAI requires an API key and charges per embedding. Set `OPENAI_API_KEY` environment variable first.
 
 ```bash
+# Set your OpenAI API key
+export OPENAI_API_KEY="sk-..."
+
 # In the script, change:
 "$GREPAI" init --yes --provider openai --backend gob
 ```
+
+**Why Ollama (default)?**
+- ✅ Free and runs locally
+- ✅ No API keys needed
+- ✅ Privacy-first (code never leaves your machine)
+- ✅ Fast embeddings with nomic-embed-text model
+
+**When to use OpenAI:**
+- Better semantic understanding for complex queries
+- Don't want to run local models
+- Already have OpenAI API credits
 
 ## Roadmap
 
