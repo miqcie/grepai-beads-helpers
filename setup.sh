@@ -528,6 +528,42 @@ EOF
   echo ""
 }
 
+# Verify installations
+verify_installations() {
+  local all_good=true
+
+  # Verify Go
+  if ! command -v go &> /dev/null; then
+    print_warning "Go not found in PATH"
+    all_good=false
+  fi
+
+  # Verify grepai
+  if [ ! -f "$HOME/go/bin/grepai" ]; then
+    print_warning "grepai not installed at $HOME/go/bin/grepai"
+    all_good=false
+  elif ! "$HOME/go/bin/grepai" --help &> /dev/null; then
+    print_warning "grepai installed but not working correctly"
+    all_good=false
+  fi
+
+  # Verify beads
+  if [ ! -f "$HOME/go/bin/bd" ]; then
+    print_warning "beads not installed at $HOME/go/bin/bd"
+    all_good=false
+  elif ! "$HOME/go/bin/bd" --help &> /dev/null; then
+    print_warning "beads installed but not working correctly"
+    all_good=false
+  fi
+
+  # Verify beads initialized
+  if [ ! -d "$HOME/.beads" ]; then
+    print_info "beads not initialized yet (run: cd ~ && bd init)"
+  fi
+
+  return $([ "$all_good" = true ] && echo 0 || echo 1)
+}
+
 # Print summary
 print_summary() {
   print_header "✅ Setup Complete"
@@ -536,14 +572,20 @@ print_summary() {
 
   if command -v go &> /dev/null; then
     echo -e "  ${GREEN}✓${NC} Go: $(go version | awk '{print $3}')"
+  else
+    echo -e "  ${RED}✗${NC} Go: Not found"
   fi
 
   if command -v grepai &> /dev/null || [ -f "$HOME/go/bin/grepai" ]; then
     echo -e "  ${GREEN}✓${NC} grepai: $HOME/go/bin/grepai"
+  else
+    echo -e "  ${RED}✗${NC} grepai: Not installed"
   fi
 
   if command -v bd &> /dev/null || [ -f "$HOME/go/bin/bd" ]; then
     echo -e "  ${GREEN}✓${NC} beads: $HOME/go/bin/bd"
+  else
+    echo -e "  ${RED}✗${NC} beads: Not installed"
   fi
 
   echo ""
@@ -599,6 +641,10 @@ main() {
   install_beads
   check_ollama
   configure_claude_md
+
+  # Verify all installations before showing summary
+  verify_installations || print_warning "Some installations may need attention"
+
   print_summary
 }
 
