@@ -105,7 +105,11 @@ detect_environment() {
   case "$OS" in
     Darwin*)
       OS_TYPE="macOS"
-      PACKAGE_MANAGER="brew"
+      if command -v brew &> /dev/null; then
+        PACKAGE_MANAGER="brew"
+      else
+        PACKAGE_MANAGER="unknown"
+      fi
       ;;
     Linux*)
       OS_TYPE="Linux"
@@ -237,7 +241,7 @@ configure_go_path() {
     print_warning "You'll need to add this manually:"
     echo '  export PATH="$HOME/go/bin:$PATH"'
     echo ""
-    return 1
+    return 0
   fi
 
   # Add to shell config
@@ -315,11 +319,12 @@ install_beads() {
       if ask_yes_no "Initialize beads in your home directory?"; then
         cd "$HOME"
         if [ -f "$HOME/go/bin/bd" ]; then
-          "$HOME/go/bin/bd" init
+          "$HOME/go/bin/bd" init && print_success "beads initialized"
         elif [ -f "$HOME/go/bin/beads" ]; then
-          "$HOME/go/bin/beads" init
+          "$HOME/go/bin/beads" init && print_success "beads initialized"
+        else
+          print_warning "beads binary not found at expected location"
         fi
-        print_success "beads initialized"
       fi
     fi
     echo ""
