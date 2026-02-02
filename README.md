@@ -267,6 +267,10 @@ Automation is:
 - ✅ Never forget a project
 - ✅ More time for actual coding
 
+## Examples
+
+- [Claude Code Workflow](examples/claude-code-workflow.md) - Best practices for using grepai with AI agents
+
 ## Customization
 
 ### Different Directories
