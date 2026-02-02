@@ -1,12 +1,8 @@
 # grepai-beads-helpers
 
-Automation scripts for [grepai](https://github.com/yoanbernabeu/grepai) (semantic code search) and [beads](https://github.com/steveyegge/beads) (AI agent memory). Built to eliminate boring, repetitive setup tasks.
+One-command setup for [grepai](https://github.com/yoanbernabeu/grepai) (semantic code search) and [beads](https://github.com/steveyegge/beads) (AI agent memory).
 
-## What This Solves
-
-**The Problem:** Setting up grepai across 20+ projects or initializing beads manually is tedious, time-consuming, and easy to forget.
-
-**The Solution:** One-command automation that handles bulk operations for you.
+Setting up these tools across multiple projects means repeating the same steps: install Go, configure PATH, run init, reload shell. This automates all of it.
 
 ## Tools Covered
 

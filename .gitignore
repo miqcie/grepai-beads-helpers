@@ -10,3 +10,8 @@
 
 # Test directories
 test-projects/
+
+# Draft documents (not for public repo)
+DRAFT-*.md
+grepai-issue.md
+*.pdf
