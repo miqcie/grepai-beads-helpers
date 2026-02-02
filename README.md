@@ -1,5 +1,9 @@
 # grepai-beads-helpers
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![GitHub stars](https://img.shields.io/github/stars/miqcie/grepai-beads-helpers?style=social)](https://github.com/miqcie/grepai-beads-helpers/stargazers)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+
 One-command setup for [grepai](https://github.com/yoanbernabeu/grepai) (semantic code search) and [beads](https://github.com/steveyegge/beads) (AI agent memory).
 
 Setting up these tools across multiple projects means repeating the same steps: install Go, configure PATH, run init, reload shell. This automates all of it.
