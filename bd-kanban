@@ -1,0 +1,302 @@
+#!/usr/bin/env python3
+"""bd-kanban — render your beads (the `bd` CLI's issues) as a terminal kanban board.
+
+Beads (https://github.com/steveyegge/beads) is a git-backed issue tracker driven
+by the `bd` command. This helper groups your beads by status into kanban columns
+and draws them as colored cards in the terminal.
+
+By default it runs `bd list --json` to fetch your issues, but it can also read a
+JSON array or JSONL stream (e.g. the output of `bd export`) from a file or stdin.
+
+Examples:
+    bd-kanban                          # render `bd list --json`
+    bd-kanban --stack                  # stack columns vertically (narrow terminals)
+    bd export | bd-kanban --stdin      # render exported JSONL from stdin
+    bd-kanban --file beads.jsonl       # render a saved export
+    bd-kanban --command "bd ready --json"   # render only ready issues
+    bd-kanban --no-color               # plain output, no ANSI colors
+"""
+import argparse
+import json
+import shlex
+import shutil
+import subprocess
+import sys
+import textwrap
+
+RESET = "\033[0m"
+BOLD = "\033[1m"
+DIM = "\033[2m"
+BLUE = "\033[38;5;39m"
+YELLOW = "\033[38;5;214m"
+RED = "\033[38;5;203m"
+GREEN = "\033[38;5;42m"
+GREY = "\033[38;5;245m"
+
+# key, header, status synonyms, color
+COLUMNS = [
+    ("open", "OPEN",
+     {"open", "todo", "backlog", "new", "ready", "active", "reopened"}, BLUE),
+    ("in_progress", "IN PROGRESS",
+     {"in_progress", "in-progress", "inprogress", "doing", "started", "wip", "in progress"}, YELLOW),
+    ("blocked", "BLOCKED",
+     {"blocked", "waiting", "on_hold", "on-hold", "paused"}, RED),
+    ("closed", "DONE",
+     {"closed", "done", "completed", "complete", "resolved", "fixed", "merged"}, GREEN),
+]
+
+MIN_COL_WIDTH = 22
+GAP = 2
+
+
+def field(bead, *names, default=""):
+    for n in names:
+        v = bead.get(n)
+        if v not in (None, "", []):
+            return v
+    return default
+
+
+def priority_value(bead):
+    p = bead.get("priority", bead.get("prio"))
+    if p is None or isinstance(p, bool):
+        return None
+    if isinstance(p, (int, float)):
+        return int(p)
+    s = str(p).strip().lower()
+    named = {"critical": 0, "high": 1, "medium": 2, "med": 2,
+             "normal": 2, "low": 3, "trivial": 3}
+    if s in named:
+        return named[s]
+    if s.startswith("p") and s[1:].isdigit():
+        return int(s[1:])
+    if s.isdigit():
+        return int(s)
+    return None
+
+
+def column_for(bead):
+    status = str(field(bead, "status", "state", default="open")).strip().lower()
+    for key, _header, syn, _color in COLUMNS:
+        if status == key or status in syn:
+            return key
+    return status
+
+
+def parse_beads(raw):
+    raw = raw.strip()
+    if not raw:
+        return []
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        beads = []
+        for line in raw.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                beads.append(json.loads(line))
+            except json.JSONDecodeError:
+                continue
+        return beads
+    if isinstance(data, dict):
+        for key in ("issues", "beads", "data", "results", "items"):
+            if isinstance(data.get(key), list):
+                return data[key]
+        return [data]
+    if isinstance(data, list):
+        return data
+    return []
+
+
+def fetch_beads(args):
+    if args.stdin:
+        return parse_beads(sys.stdin.read())
+    if args.file:
+        with open(args.file) as f:
+            return parse_beads(f.read())
+    cmd = shlex.split(args.command)
+    try:
+        proc = subprocess.run(cmd, capture_output=True, text=True)
+    except FileNotFoundError:
+        sys.exit(
+            "error: '%s' not found.\n"
+            "Install beads:  go install github.com/steveyegge/beads/cmd/bd@latest\n"
+            "Then run `bd init` in your project, or feed data with --file / --stdin."
+            % cmd[0]
+        )
+    if proc.returncode != 0:
+        sys.exit("error: `%s` failed:\n%s" % (args.command, proc.stderr.strip()))
+    return parse_beads(proc.stdout)
+
+
+def colorize(s, codes, use_color):
+    if not use_color or not codes:
+        return s
+    return codes + s + RESET
+
+
+def center(s, width):
+    s = s[:width]
+    pad = width - len(s)
+    left = pad // 2
+    return " " * left + s + " " * (pad - left)
+
+
+def wrap(text, width):
+    text = " ".join(str(text).split())
+    if not text:
+        return [""]
+    return textwrap.wrap(text, width) or [""]
+
+
+def card_lines(bead, width):
+    inner = max(6, width - 4)
+    bid = str(field(bead, "id", "name", "key", default="?"))
+    pv = priority_value(bead)
+    ptag = "P%d" % pv if pv is not None else ""
+    if ptag and len(bid) + 1 + len(ptag) <= inner:
+        pad = inner - len(bid) - len(ptag)
+        head = bid + " " * pad + ptag
+    else:
+        head = (bid + " " + ptag).strip()
+    title = field(bead, "title", "name", "summary", "description", default="(untitled)")
+
+    body = [head[:inner].ljust(inner)]
+    for ln in wrap(title, inner):
+        body.append(ln.ljust(inner))
+
+    meta = []
+    assignee = field(bead, "assignee", "owner", "assigned_to", default="")
+    if assignee:
+        meta.append("@" + str(assignee))
+    labels = field(bead, "labels", "tags", default=[])
+    if isinstance(labels, str):
+        labels = [x for x in labels.replace(",", " ").split() if x]
+    for lab in list(labels)[:3]:
+        meta.append("#" + str(lab))
+    if meta:
+        body.append(" ".join(meta)[:inner].ljust(inner))
+
+    top = "┌" + "─" * (width - 2) + "┐"
+    bot = "└" + "─" * (width - 2) + "┘"
+    boxed = [top]
+    for ln in body:
+        boxed.append("│ " + ln + " │")
+    boxed.append(bot)
+    return boxed
+
+
+def sort_beads(beads):
+    return sorted(
+        beads,
+        key=lambda b: (
+            priority_value(b) if priority_value(b) is not None else 99,
+            str(field(b, "id", "name", default="")),
+        ),
+    )
+
+
+def build_column(header, color, beads, width, use_color):
+    blank = " " * width
+    title = "%s (%d)" % (header, len(beads))
+    lines = [
+        colorize(center(title, width), color + BOLD, use_color),
+        colorize("═" * width, color, use_color),
+        blank,
+    ]
+    if not beads:
+        lines.append(colorize(center("(empty)", width), DIM, use_color))
+        lines.append(blank)
+    for b in sort_beads(beads):
+        for ln in card_lines(b, width):
+            lines.append(colorize(ln, color, use_color))
+        lines.append(blank)
+    return lines
+
+
+def render_side_by_side(columns, board_width, use_color):
+    ncols = len(columns)
+    col_width = (board_width - GAP * (ncols - 1)) // ncols
+    rendered = [build_column(h, c, b, col_width, use_color) for (h, c, b) in columns]
+    height = max(len(col) for col in rendered)
+    blank = " " * col_width
+    out = []
+    for i in range(height):
+        row = [col[i] if i < len(col) else blank for col in rendered]
+        out.append((" " * GAP).join(row).rstrip())
+    print("\n".join(out))
+
+
+def render_stacked(columns, board_width, use_color):
+    width = min(board_width, 80)
+    for header, color, beads in columns:
+        print(colorize("\n%s (%d)" % (header, len(beads)), color + BOLD, use_color))
+        print(colorize("═" * width, color, use_color))
+        if not beads:
+            print(colorize("  (empty)", DIM, use_color))
+            continue
+        for b in sort_beads(beads):
+            bid = str(field(b, "id", "name", "key", default="?"))
+            pv = priority_value(b)
+            ptag = "P%d " % pv if pv is not None else ""
+            title = field(b, "title", "name", "summary", default="(untitled)")
+            assignee = field(b, "assignee", "owner", default="")
+            who = "  @%s" % assignee if assignee else ""
+            line = "  %-8s %s%s%s" % (bid, ptag, " ".join(str(title).split()), who)
+            print(colorize(line, color, use_color))
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        prog="bd-kanban",
+        description="Render your beads (the `bd` CLI's issues) as a kanban board.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=__doc__,
+    )
+    parser.add_argument("--command", default="bd list --json",
+                        help="command to fetch beads as JSON (default: %(default)s)")
+    parser.add_argument("--file", help="read beads from a JSON/JSONL file instead of running bd")
+    parser.add_argument("--stdin", action="store_true",
+                        help="read beads JSON/JSONL from stdin")
+    parser.add_argument("--width", type=int,
+                        help="board width in columns (default: terminal width)")
+    parser.add_argument("--stack", action="store_true",
+                        help="stack columns vertically instead of side-by-side")
+    parser.add_argument("--no-color", action="store_true", help="disable ANSI colors")
+    parser.add_argument("--color", action="store_true",
+                        help="force ANSI colors even when output is piped")
+    args = parser.parse_args()
+
+    beads = fetch_beads(args)
+
+    groups = {key: [] for key, *_ in COLUMNS}
+    extra = {}
+    for b in beads:
+        col = column_for(b)
+        if col in groups:
+            groups[col].append(b)
+        else:
+            extra.setdefault(col, []).append(b)
+
+    columns = [(header, color, groups[key]) for key, header, _syn, color in COLUMNS]
+    for status, items in sorted(extra.items()):
+        columns.append((status.upper(), GREY, items))
+
+    use_color = args.color or (not args.no_color and sys.stdout.isatty())
+    board_width = args.width or shutil.get_terminal_size((120, 40)).columns
+
+    if not beads:
+        print("No beads found. Create one with: bd create \"my first task\"")
+        return
+
+    col_width = (board_width - GAP * (len(columns) - 1)) // max(1, len(columns))
+    if args.stack or col_width < MIN_COL_WIDTH:
+        render_stacked(columns, board_width, use_color)
+    else:
+        render_side_by_side(columns, board_width, use_color)
+
+
+if __name__ == "__main__":
+    main()
