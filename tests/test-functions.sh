@@ -286,6 +286,45 @@ else
 fi
 
 # ========================================
+# Test 12: bd-kanban renders the board
+# ========================================
+test_header "bd-kanban"
+
+if [ -f "bd-kanban" ] && [ -x "bd-kanban" ]; then
+  pass "bd-kanban exists and is executable"
+else
+  fail "bd-kanban missing or not executable"
+fi
+
+if [ -f "tests/fixtures/sample-beads.jsonl" ]; then
+  pass "sample-beads.jsonl fixture exists"
+else
+  fail "sample-beads.jsonl fixture not found"
+fi
+
+if command -v python3 &> /dev/null; then
+  if KANBAN_OUT=$(python3 bd-kanban --file tests/fixtures/sample-beads.jsonl --no-color --width 120 2>&1); then
+    pass "bd-kanban renders fixture (exit 0)"
+  else
+    fail "bd-kanban exited non-zero"
+  fi
+
+  if echo "$KANBAN_OUT" | grep -q "IN PROGRESS"; then
+    pass "bd-kanban output contains 'IN PROGRESS' column"
+  else
+    fail "bd-kanban output missing 'IN PROGRESS' column"
+  fi
+
+  if echo "$KANBAN_OUT" | grep -q "bd-2"; then
+    pass "bd-kanban output contains bead id 'bd-2'"
+  else
+    fail "bd-kanban output missing bead id 'bd-2'"
+  fi
+else
+  print_info "python3 not installed (skipping bd-kanban render test)"
+fi
+
+# ========================================
 # Summary
 # ========================================
 echo ""

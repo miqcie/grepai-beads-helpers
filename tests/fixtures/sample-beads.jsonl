@@ -1,0 +1,5 @@
+{"id":"bd-1","title":"Set up project scaffolding","status":"closed","priority":1,"assignee":"chris","labels":["infra"]}
+{"id":"bd-2","title":"Design kanban rendering for beads CLI output","status":"in_progress","priority":0,"assignee":"chris","labels":["cli","ux"]}
+{"id":"bd-3","title":"Parse bd list --json and bd export JSONL formats","status":"open","priority":1,"labels":["cli"]}
+{"id":"bd-4","title":"Handle blocked dependencies in the board","status":"blocked","priority":2,"dependencies":["bd-3"]}
+{"id":"bd-5","title":"Write tests and documentation","status":"open","priority":3}
