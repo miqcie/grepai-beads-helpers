@@ -280,12 +280,29 @@ install_grepai() {
 
   print_info "Installing grepai from source..."
 
-  # Install grepai
-  if go install github.com/yoanbernabeu/grepai/cmd/grepai@latest; then
+  # Install grepai by cloning and building from source.
+  #
+  # We cannot use `go install github.com/yoanbernabeu/grepai/cmd/grepai@latest`
+  # because upstream's go.mod contains `exclude` directives. Go refuses to
+  # `go install <pkg>@version` any module whose go.mod has exclude/replace
+  # directives (it errors with "The go.mod file for the module providing named
+  # packages contains one or more exclude directives"). Those directives are
+  # only legal for the main module, so building from a local clone — where the
+  # cloned module IS the main module — sidesteps the limitation entirely.
+  local grepai_tmp
+  grepai_tmp=$(mktemp -d) || {
+    print_error "grepai installation failed (could not create temp dir)"
+    return 1
+  }
+
+  if git clone --depth 1 https://github.com/yoanbernabeu/grepai "$grepai_tmp/grepai" &> /dev/null \
+    && (cd "$grepai_tmp/grepai" && go install ./cmd/grepai); then
     print_success "grepai installed successfully"
     print_info "Location: $HOME/go/bin/grepai"
+    rm -rf "$grepai_tmp"
   else
     print_error "grepai installation failed"
+    rm -rf "$grepai_tmp"
     return 1
   fi
 
