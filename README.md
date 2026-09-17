@@ -223,10 +223,17 @@ export OPENAI_API_KEY="sk-..."
 Render your beads (the `bd` CLI's issues) as a terminal **kanban board**, grouped by status into columns.
 
 **What it does:**
-- Fetches your beads by running `bd list --json` (or any command you choose)
+- Fetches your beads by running `bd list --all --limit 0 --json` (or any command you choose)
 - Groups them into `OPEN`, `IN PROGRESS`, `BLOCKED`, and `DONE` columns by status
 - Draws each bead as a colored card showing its id, priority, title, assignee, and labels
 - Also reads a JSON array or JSONL stream (e.g. `bd export`) from a file or stdin
+
+> **Note on the default fetch:** a plain `bd list --json` hides closed issues and caps
+> results at 50 rows, which would leave the `DONE` column empty and silently drop beads.
+> The default command therefore adds `--all` (include closed issues) and `--limit 0`
+> (no row cap). If you override `--command` with a plain `bd list` that keeps the default
+> 50-row cap and the result hits it, `bd-kanban` prints a truncation warning to stderr;
+> add `--limit 0` to fetch everything.
 
 **Prerequisites:**
 - Python 3 (no third-party packages required)
@@ -234,7 +241,7 @@ Render your beads (the `bd` CLI's issues) as a terminal **kanban board**, groupe
 
 **Usage:**
 ```bash
-./bd-kanban                          # render `bd list --json` side-by-side
+./bd-kanban                          # render `bd list --all --limit 0 --json` side-by-side
 ./bd-kanban --stack                  # stack columns vertically (narrow terminals)
 bd export | ./bd-kanban --stdin      # render exported JSONL from stdin
 ./bd-kanban --file beads.jsonl       # render a saved export

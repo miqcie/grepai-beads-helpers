@@ -320,6 +320,31 @@ if command -v python3 &> /dev/null; then
   else
     fail "bd-kanban output missing bead id 'bd-2'"
   fi
+
+  # bd-6 has `owner` set but no `assignee`. owner is git/CV attribution, not the
+  # assignee, so it must NOT be rendered as @owner on the card.
+  if echo "$KANBAN_OUT" | grep -q "bd-6"; then
+    pass "bd-kanban output contains bead id 'bd-6' (owner-only bead)"
+  else
+    fail "bd-kanban output missing bead id 'bd-6'"
+  fi
+
+  if echo "$KANBAN_OUT" | grep -q "@ghostwriter"; then
+    fail "bd-kanban rendered owner as assignee (@ghostwriter shown)"
+  else
+    pass "bd-kanban does not show owner as assignee (side-by-side)"
+  fi
+
+  # Same assertion for the stacked layout, which has its own assignee rendering.
+  if KANBAN_STACKED=$(python3 bd-kanban --file tests/fixtures/sample-beads.jsonl --no-color --stack --width 120 2>&1); then
+    if echo "$KANBAN_STACKED" | grep -q "@ghostwriter"; then
+      fail "bd-kanban --stack rendered owner as assignee (@ghostwriter shown)"
+    else
+      pass "bd-kanban does not show owner as assignee (stacked)"
+    fi
+  else
+    fail "bd-kanban --stack exited non-zero"
+  fi
 else
   print_info "python3 not installed (skipping bd-kanban render test)"
 fi

@@ -5,11 +5,17 @@ Beads (https://github.com/steveyegge/beads) is a git-backed issue tracker driven
 by the `bd` command. This helper groups your beads by status into kanban columns
 and draws them as colored cards in the terminal.
 
-By default it runs `bd list --json` to fetch your issues, but it can also read a
+By default it runs `bd list --all --limit 0 --json` to fetch your issues: `--all`
+includes closed issues so the DONE column is populated, and `--limit 0` removes
+bd's default 50-row cap so the board is not silently truncated. It can also read a
 JSON array or JSONL stream (e.g. the output of `bd export`) from a file or stdin.
 
+If you override --command with a plain `bd list`-style command that keeps bd's
+default limit, and the result meets that 50-row cap, a warning is printed to stderr
+so you know the board may be truncated (raise it with `--limit 0`).
+
 Examples:
-    bd-kanban                          # render `bd list --json`
+    bd-kanban                          # render `bd list --all --limit 0 --json`
     bd-kanban --stack                  # stack columns vertically (narrow terminals)
     bd export | bd-kanban --stdin      # render exported JSONL from stdin
     bd-kanban --file beads.jsonl       # render a saved export
@@ -47,6 +53,11 @@ COLUMNS = [
 
 MIN_COL_WIDTH = 22
 GAP = 2
+
+# bd's `list` command defaults to returning at most this many rows (bd list --help:
+# "Limit results (default 50, use 0 for unlimited)"). When a fetch inherits this cap
+# and hits it, the board is silently truncated, so we warn on stderr.
+DEFAULT_LIST_LIMIT = 50
 
 
 def field(bead, *names, default=""):
@@ -110,6 +121,32 @@ def parse_beads(raw):
     return []
 
 
+def command_overrides_limit(cmd):
+    """True if the fetch command already sets bd's --limit/-n (raising or removing
+    the default cap), so we should not warn about truncation for it."""
+    for tok in cmd:
+        if tok in ("--limit", "-n"):
+            return True
+        if tok.startswith("--limit=") or tok.startswith("-n="):
+            return True
+    return False
+
+
+def warn_if_truncated(cmd, count):
+    """Warn on stderr when a bd-run fetch inherited bd's default row cap and the
+    result meets it, meaning the board may be silently truncated."""
+    if command_overrides_limit(cmd):
+        return
+    if count >= DEFAULT_LIST_LIMIT:
+        sys.stderr.write(
+            "warning: fetched %d beads, meeting bd's default limit of %d — the board "
+            "may be truncated.\n"
+            "         Fetch all issues by adding `--limit 0` to your command, e.g. "
+            "--command \"bd list --all --limit 0 --json\".\n"
+            % (count, DEFAULT_LIST_LIMIT)
+        )
+
+
 def fetch_beads(args):
     if args.stdin:
         return parse_beads(sys.stdin.read())
@@ -128,7 +165,9 @@ def fetch_beads(args):
         )
     if proc.returncode != 0:
         sys.exit("error: `%s` failed:\n%s" % (args.command, proc.stderr.strip()))
-    return parse_beads(proc.stdout)
+    beads = parse_beads(proc.stdout)
+    warn_if_truncated(cmd, len(beads))
+    return beads
 
 
 def colorize(s, codes, use_color):
@@ -168,7 +207,7 @@ def card_lines(bead, width):
         body.append(ln.ljust(inner))
 
     meta = []
-    assignee = field(bead, "assignee", "owner", "assigned_to", default="")
+    assignee = field(bead, "assignee", "assigned_to", default="")
     if assignee:
         meta.append("@" + str(assignee))
     labels = field(bead, "labels", "tags", default=[])
@@ -242,7 +281,7 @@ def render_stacked(columns, board_width, use_color):
             pv = priority_value(b)
             ptag = "P%d " % pv if pv is not None else ""
             title = field(b, "title", "name", "summary", default="(untitled)")
-            assignee = field(b, "assignee", "owner", default="")
+            assignee = field(b, "assignee", "assigned_to", default="")
             who = "  @%s" % assignee if assignee else ""
             line = "  %-8s %s%s%s" % (bid, ptag, " ".join(str(title).split()), who)
             print(colorize(line, color, use_color))
@@ -255,8 +294,10 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )
-    parser.add_argument("--command", default="bd list --json",
-                        help="command to fetch beads as JSON (default: %(default)s)")
+    parser.add_argument("--command", default="bd list --all --limit 0 --json",
+                        help="command to fetch beads as JSON (default: %(default)s). "
+                             "The default uses --all so closed issues populate DONE and "
+                             "--limit 0 to remove bd's 50-row cap.")
     parser.add_argument("--file", help="read beads from a JSON/JSONL file instead of running bd")
     parser.add_argument("--stdin", action="store_true",
                         help="read beads JSON/JSONL from stdin")
